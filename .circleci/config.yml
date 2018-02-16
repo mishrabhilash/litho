@@ -1,10 +1,6 @@
 version: 2
 jobs:
-  build:
-    environment:
-      TERM: 'dumb'
-      ANDROID_HOME: '/home/circleci/android-sdk'
-      ANDROID_NDK_REPOSITORY: "/home/circleci/android-ndk"
+  checkout_code:
     docker:
       - image: passy/android-circleci-litho:latest
     resource_class: large
@@ -22,29 +18,89 @@ jobs:
           name: Set up Buck
           command: echo "export PATH=$HOME/buck/bin:$PATH" >> $BASH_ENV
       - run:
-          name: Gradle Dependencies
-          command: ./gradlew androidDependencies
-      - run:
           name: Buck Dependencies
           command: $HOME/buck/bin/buck fetch //...
+
+  setup_gradle:
+    environment:
+      TERM: 'dumb'
+      ANDROID_HOME: '/home/circleci/android-sdk'
+      ANDROID_NDK_REPOSITORY: "/home/circleci/android-ndk"
+    docker:
+      - image: passy/android-circleci-litho:latest
+    resource_class: large
+    steps:
+      - run:
+          name: Gradle Dependencies
+          command: ./gradlew androidDependencies
       - save_cache:
           paths:
             - ~/.gradle
             - ~/buck
             - ~/android-sdk
           key: jars-{{ checksum "build.gradle" }}-{{ checksum  "gradle.properties" }}
+
+  run_buck:
+    environment:
+      TERM: 'dumb'
+      ANDROID_HOME: '/home/circleci/android-sdk'
+      ANDROID_NDK_REPOSITORY: "/home/circleci/android-ndk"
+    docker:
+      - image: passy/android-circleci-litho:latest
+    resource_class: large
+    steps:
       - run:
-          name: Run Tests
+          name: Run Buck Tests
           command: |
-            export PATH="$HOME/buck/bin:$PATH"
             echo "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap" >> .buckjavaargs.local
             buck build sample --num-threads=4
             buck build sample-barebones --num-threads=4
             buck build sample-codelab --num-threads=4
             buck test litho-it/src/test/... --num-threads=4
             buck test litho-it-powermock/src/test/... --num-threads=4
+
+  run_gradle:
+    environment:
+      TERM: 'dumb'
+      ANDROID_HOME: '/home/circleci/android-sdk'
+      ANDROID_NDK_REPOSITORY: "/home/circleci/android-ndk"
+    docker:
+      - image: passy/android-circleci-litho:latest
+    resource_class: large
+    steps:
+      - run:
+          name: Run Gradle Tests
+          command: |
             ./gradlew test
             ./gradlew :sample-kotlin:assembleDebug
+
+  publish_snapshot:
+    environment:
+      TERM: 'dumb'
+      ANDROID_HOME: '/home/circleci/android-sdk'
+      ANDROID_NDK_REPOSITORY: "/home/circleci/android-ndk"
+    docker:
+      - image: passy/android-circleci-litho:latest
+    resource_class: large
+    steps:
       - run:
           name: Publish Snapshot
           command: scripts/circle-ci-publish-snapshot.sh
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - checkout_code
+      - setup_gradle:
+          requires:
+            - checkout_code
+      - run_buck:
+          requires:
+            - checkout_code
+      - run_gradle:
+          requires:
+            - setup_gradle
+      - publish_snapshot:
+          requires:
+            - run_gradle
