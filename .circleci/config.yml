@@ -1,6 +1,10 @@
 version: 2
 jobs:
   checkout_code:
+    environment:
+      TERM: 'dumb'
+      ANDROID_HOME: '/home/circleci/android-sdk'
+      ANDROID_NDK_REPOSITORY: "/home/circleci/android-ndk"
     docker:
       - image: passy/android-circleci-litho:latest
     resource_class: large
