@@ -19,9 +19,6 @@ jobs:
       - restore_cache:
           key: jars-{{ checksum "build.gradle" }}-{{ checksum  "gradle.properties" }}
       - run:
-          name: Set up Buck
-          command: echo "export PATH=$HOME/buck/bin:$PATH" >> $BASH_ENV
-      - run:
           name: Buck Dependencies
           command: $HOME/buck/bin/buck fetch //...
 
@@ -56,6 +53,7 @@ jobs:
       - run:
           name: Run Buck Tests
           command: |
+            export PATH=$PATH:$HOME/buck/bin
             echo "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap" >> .buckjavaargs.local
             buck build sample --num-threads=4
             buck build sample-barebones --num-threads=4
@@ -75,6 +73,7 @@ jobs:
       - run:
           name: Run Gradle Tests
           command: |
+            export PATH=$PATH:$HOME/buck/bin
             ./gradlew test
             ./gradlew :sample-kotlin:assembleDebug
 
