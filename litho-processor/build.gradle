@@ -35,4 +35,4 @@ dependencies {
     implementation deps.supportAnnotations
 }
 
-apply from: rootProject.file('gradle/release.gradle')
+apply from: rootProject.file('gradle/jitpack.gradle')

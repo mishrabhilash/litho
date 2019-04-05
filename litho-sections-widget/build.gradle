@@ -47,7 +47,7 @@ dependencies {
     implementation deps.supportCoreUi
 }
 
-apply from: rootProject.file('gradle/release.gradle')
+apply from: rootProject.file('gradle/jitpack.gradle')
 
 task sourcesJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
